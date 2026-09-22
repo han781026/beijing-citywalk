@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2f7d5f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>北京 CityWalk 手账</title>
+<style>
+  :root{
+    --primary:#2f7d5f; --primary-dark:#25644c; --primary-light:#e3f0ea;
+    --bg:#f6f4ef; --card:#ffffff; --text:#26332d; --muted:#8a958f;
+    --line:#eae7df; --accent:#e07a3f; --danger:#c0533f;
+    --radius:14px; --shadow:0 1px 3px rgba(40,60,50,.08),0 4px 14px rgba(40,60,50,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --primary:#5cbf96; --primary-dark:#3f9d78; --primary-light:#1e3a2e;
+      --bg:#14181a; --card:#1e2426; --text:#e6ecea; --muted:#8b968f;
+      --line:#2b3335; --accent:#e8935e;
+      --shadow:0 1px 3px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.3);
+    }
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;
+    background:var(--bg); color:var(--text);
+    padding-bottom:calc(96px + env(safe-area-inset-bottom));
+  }
+  .wrap{max-width:720px;margin:0 auto;padding:0 14px;}
+
+  header{
+    background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+    color:#fff;padding:calc(18px + env(safe-area-inset-top)) 0 16px;
+    border-radius:0 0 22px 22px; box-shadow:var(--shadow);
+  }
+  header h1{margin:0;font-size:20px;letter-spacing:1px;}
+  header .sub{font-size:12px;opacity:.85;margin-top:4px;}
+  .week-banner{
+    margin-top:12px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);
+    border-radius:12px;padding:10px 12px;font-size:13px;display:flex;justify-content:space-between;align-items:center;gap:8px;
+  }
+  .week-banner b{font-size:15px;}
+
+  nav{
+    position:sticky;top:0;z-index:30;background:var(--bg);
+    display:flex;gap:6px;padding:12px 0 8px;
+  }
+  nav button{
+    flex:1;border:none;background:var(--card);color:var(--muted);
+    padding:9px 0;border-radius:11px;font-size:14px;cursor:pointer;box-shadow:var(--shadow);
+    transition:all .15s;
+  }
+  nav button.active{background:var(--primary);color:#fff;font-weight:600;}
+
+  section{display:none;} section.active{display:block;}
+
+  .toolbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+  .toolbar input[type=search]{
+    flex:1;min-width:180px;border:1px solid var(--line);background:var(--card);
+    border-radius:11px;padding:9px 12px;font-size:14px;color:var(--text);outline:none;
+  }
+  .tagbar{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none;}
+  .tagbar::-webkit-scrollbar{display:none;}
+  .tagbar .t{
+    flex:none;border:1px solid var(--line);background:var(--card);color:var(--muted);
+    font-size:12px;padding:5px 11px;border-radius:99px;cursor:pointer;white-space:nowrap;
+  }
+  .tagbar .t.on{background:var(--primary);border-color:var(--primary);color:#fff;}
+
+  .empty{
+    text-align:center;color:var(--muted);padding:56px 20px;font-size:14px;line-height:2;
+  }
+  .empty .big{font-size:44px;}
+
+  .card{
+    background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:14px;margin-bottom:12px;cursor:pointer;position:relative;
+  }
+  .card .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;}
+  .card .title{font-size:16px;font-weight:600;word-break:break-all;}
+  .card .date{flex:none;font-size:12px;color:var(--muted);}
+  .card .route{font-size:12.5px;color:var(--muted);margin-top:2px;}
+  .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+  .chip{
+    font-size:11px;background:var(--primary-light);color:var(--primary-dark);
+    padding:2px 9px;border-radius:99px;
+  }
+  @media (prefers-color-scheme: dark){ .chip{color:var(--primary);} }
+  .card .notes{
+    margin-top:8px;font-size:13.5px;line-height:1.65;color:var(--text);
+    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap;
+  }
+  .thumbs{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap;}
+  .thumbs img{width:64px;height:64px;object-fit:cover;border-radius:9px;}
+  .meta{display:flex;gap:14px;margin-top:9px;font-size:12px;color:var(--muted);align-items:center;flex-wrap:wrap;}
+  .stars{color:#e8a23c;letter-spacing:1px;font-size:13px;}
+
+  /* 日历 */
+  .cal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .cal-head .m{font-size:17px;font-weight:600;}
+  .cal-head button{
+    border:1px solid var(--line);background:var(--card);color:var(--text);
+    width:36px;height:36px;border-radius:10px;font-size:16px;cursor:pointer;
+  }
+  .cal-head .nav-btns{display:flex;gap:6px;}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
+  .cal-grid .wd{text-align:center;font-size:11px;color:var(--muted);padding:4px 0;}
+  .cal-cell{
+    aspect-ratio:1;border-radius:11px;background:var(--card);border:1px solid var(--line);
+    display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+    font-size:13px;padding-top:5px;cursor:pointer;position:relative;box-shadow:var(--shadow);
+  }
+  .cal-cell.dim{opacity:.35;}
+  .cal-cell.today{border:2px solid var(--primary);}
+  .cal-cell .dots{display:flex;gap:2px;margin-top:3px;height:6px;}
+  .cal-cell .dot{width:5px;height:5px;border-radius:50%;background:var(--primary);}
+  .cal-cell .km{font-size:9px;color:var(--muted);}
+  .day-panel{margin-top:12px;}
+  .day-panel h3{font-size:14px;margin:14px 0 8px;color:var(--muted);font-weight:500;}
+
+  /* 统计 */
+  .stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px;}
+  .stat{
+    background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:16px 14px;text-align:center;
+  }
+  .stat .v{font-size:24px;font-weight:700;color:var(--primary);}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:3px;}
+  .panel{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin-bottom:14px;}
+  .panel h3{margin:0 0 12px;font-size:15px;}
+  .bar-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12.5px;}
+  .bar-row .name{width:52px;flex:none;color:var(--muted);text-align:right;}
+  .bar-row .bar{height:16px;border-radius:8px;background:var(--primary);min-width:3px;}
+  .bar-row .num{color:var(--muted);}
+  .trend{display:flex;align-items:flex-end;gap:6px;height:110px;padding-top:6px;}
+  .trend .col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px;}
+  .trend .col .b{width:70%;max-width:34px;border-radius:6px 6px 2px 2px;background:linear-gradient(180deg,var(--primary),var(--primary-dark));}
+  .trend .col .t{font-size:10px;color:var(--muted);}
+  .trend .col .vv{font-size:10px;color:var(--text);}
+
+  /* 数据 */
+  .btn{
+    display:block;width:100%;border:none;border-radius:12px;padding:13px;font-size:15px;
+    cursor:pointer;margin-bottom:10px;background:var(--card);color:var(--text);box-shadow:var(--shadow);
+  }
+  .btn.primary{background:var(--primary);color:#fff;font-weight:600;}
+  .btn.danger{color:var(--danger);}
+  .hint{font-size:12.5px;color:var(--muted);line-height:1.9;margin:6px 0 14px;}
+  .store-info{font-size:12px;color:var(--muted);margin-bottom:12px;}
+
+  /* FAB */
+  .fab{
+    position:fixed;right:calc(50% - min(360px,50%) + 18px);bottom:calc(26px + env(safe-area-inset-bottom));
+    width:58px;height:58px;border-radius:50%;border:none;background:var(--primary);color:#fff;
+    font-size:30px;line-height:56px;box-shadow:0 6px 18px rgba(47,125,95,.45);cursor:pointer;z-index:40;
+  }
+  @media (max-width:740px){ .fab{right:20px;} }
+
+  /* 弹窗 */
+  .overlay{
+    position:fixed;inset:0;background:rgba(20,26,23,.5);z-index:50;display:none;
+    align-items:flex-end;justify-content:center;
+  }
+  .overlay.open{display:flex;}
+  .sheet{
+    background:var(--bg);width:100%;max-width:720px;max-height:92vh;overflow-y:auto;
+    border-radius:20px 20px 0 0;padding:18px 16px calc(20px + env(safe-area-inset-bottom));
+    animation:up .2s ease;
+  }
+  @keyframes up{from{transform:translateY(40px);opacity:0;}to{transform:none;opacity:1;}}
+  @media (min-width:720px){
+    .overlay{align-items:center;}
+    .sheet{border-radius:20px;max-height:86vh;margin:0 12px;}
+  }
+  .sheet h2{margin:0 0 14px;font-size:17px;display:flex;justify-content:space-between;align-items:center;}
+  .sheet h2 .close{border:none;background:none;font-size:22px;color:var(--muted);cursor:pointer;}
+  .field{margin-bottom:13px;}
+  .field label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:5px;}
+  .field input,.field textarea,.field select{
+    width:100%;border:1px solid var(--line);background:var(--card);border-radius:11px;
+    padding:10px 12px;font-size:15px;color:var(--text);outline:none;font-family:inherit;
+  }
+  .field input:focus,.field textarea:focus{border-color:var(--primary);}
+  .field textarea{min-height:96px;resize:vertical;line-height:1.6;}
+  .row2{display:flex;gap:10px;} .row2 .field{flex:1;}
+  .row3{display:flex;gap:10px;} .row3 .field{flex:1;}
+  .stars-input{display:flex;gap:4px;font-size:26px;color:#d8d3c8;cursor:pointer;user-select:none;}
+  .stars-input .s.on{color:#e8a23c;}
+  .tag-edit{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
+  .tag-edit .t{
+    font-size:12.5px;border:1px solid var(--line);background:var(--card);color:var(--muted);
+    padding:5px 12px;border-radius:99px;cursor:pointer;
+  }
+  .tag-edit .t.on{background:var(--primary);border-color:var(--primary);color:#fff;}
+  .custom-tag-row{display:flex;gap:8px;}
+  .custom-tag-row input{flex:1;}
+  .custom-tag-row button{
+    flex:none;border:none;background:var(--primary-light);color:var(--primary-dark);
+    border-radius:11px;padding:0 16px;font-size:14px;cursor:pointer;
+  }
+  .photo-grid{display:flex;flex-wrap:wrap;gap:8px;}
+  .photo-grid .ph{position:relative;width:76px;height:76px;}
+  .photo-grid .ph img{width:100%;height:100%;object-fit:cover;border-radius:10px;}
+  .photo-grid .ph .x{
+    position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;
+    background:rgba(0,0,0,.65);color:#fff;border:none;font-size:13px;line-height:22px;cursor:pointer;
+  }
+  .photo-add{
+    width:76px;height:76px;border-radius:10px;border:1.5px dashed var(--muted);
+    background:none;color:var(--muted);font-size:26px;cursor:pointer;
+  }
+  .submit-row{display:flex;gap:10px;margin-top:18px;}
+  .submit-row .btn{margin-bottom:0;flex:1;}
+  .detail-notes{font-size:14.5px;line-height:1.85;white-space:pre-wrap;margin-top:10px;}
+  .detail-imgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin-top:12px;}
+  .detail-imgs img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;cursor:zoom-in;}
+  .detail-actions{display:flex;gap:10px;margin-top:16px;}
+  .detail-actions .btn{margin-bottom:0;}
+  #lightbox{
+    position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:60;display:none;
+    align-items:center;justify-content:center;
+  }
+  #lightbox.open{display:flex;}
+  #lightbox img{max-width:94%;max-height:90%;object-fit:contain;}
+  #toast{
+    position:fixed;left:50%;bottom:calc(110px + env(safe-area-inset-bottom));transform:translateX(-50%);
+    background:rgba(25,32,28,.92);color:#fff;padding:10px 18px;border-radius:99px;font-size:13.5px;
+    opacity:0;pointer-events:none;transition:opacity .25s;z-index:70;max-width:82vw;text-align:center;
+  }
+  #toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <h1>🚶 北京 CityWalk 手账</h1>
+    <div class="sub">每周一走 · 把路过的北京记下来</div>
+    <div class="week-banner" id="weekBanner"></div>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav>
+    <button data-tab="timeline" class="active">时间线</button>
+    <button data-tab="calendar">日历</button>
+    <button data-tab="stats">统计</button>
+    <button data-tab="data">数据</button>
+  </nav>
+
+  <!-- 时间线 -->
+  <section id="tab-timeline" class="active">
+    <div class="toolbar">
+      <input type="search" id="searchBox" placeholder="搜地名、胡同、心情、笔记…">
+    </div>
+    <div class="tagbar" id="tagFilter"></div>
+    <div id="list"></div>
+  </section>
+
+  <!-- 日历 -->
+  <section id="tab-calendar">
+    <div class="cal-head">
+      <div class="nav-btns"><button id="calPrev">‹</button></div>
+      <div class="m" id="calTitle"></div>
+      <div class="nav-btns"><button id="calNext">›</button></div>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div class="day-panel" id="dayPanel"></div>
+  </section>
+
+  <!-- 统计 -->
+  <section id="tab-stats">
+    <div class="stat-grid" id="statCards"></div>
+    <div class="panel"><h3>🏷️ 主题偏好</h3><div id="tagStats"></div></div>
+    <div class="panel"><h3>📈 近 6 个月里程（km）</h3><div class="trend" id="trendChart"></div></div>
+    <div class="panel"><h3>📅 今年打卡周数</h3><div id="yearStats" style="font-size:13.5px;line-height:2;color:var(--muted);"></div></div>
+  </section>
+
+  <!-- 数据 -->
+  <section id="tab-data">
+    <div class="panel">
+      <h3>💾 备份与迁移</h3>
+      <div class="store-info" id="storeInfo"></div>
+      <div class="hint">所有记录只保存在<b>这台设备的这个浏览器</b>里，清除浏览器数据会导致丢失。建议每隔一两个月导出一次备份文件，发到微信「文件传输助手」长期保存；换设备时用「恢复备份」导入即可。</div>
+      <button class="btn primary" id="btnExport">⬇️ 导出备份（JSON）</button>
+      <button class="btn" id="btnExportCsv">⬇️ 导出表格（CSV，可用 Excel 打开）</button>
+      <button class="btn" id="btnImport">⬆️ 恢复备份 / 合并数据</button>
+      <input type="file" id="importFile" accept=".json" hidden>
+    </div>
+    <div class="panel">
+      <h3>📱 怎么当成 App 用</h3>
+      <div class="hint" style="margin-bottom:0">
+        1️⃣ 把这个文件发送到手机（微信文件 → 打开方式选浏览器，或用系统浏览器直接打开）。<br>
+        2️⃣ iPhone：Safari 打开后点「分享 → 添加到主屏幕」；安卓：浏览器菜单里选「添加到桌面 / 安装应用」。<br>
+        3️⃣ 以后从桌面图标进入，就像小程序一样全屏使用。<br>
+        ⚠️ 注意：iPhone 上请用 Safari 打开保存，微信内置浏览器里添加的记录可能被清掉。
+      </div>
+    </div>
+    <div class="panel">
+      <h3>⚠️ 危险操作</h3>
+      <button class="btn danger" id="btnClear">清空全部记录</button>
+    </div>
+  </section>
+</div>
+
+<button class="fab" id="fabAdd" title="记一笔">＋</button>
+
+<!-- 编辑弹窗 -->
+<div class="overlay" id="editOverlay">
+  <div class="sheet">
+    <h2><span id="editTitle">记下这次走路</span><button class="close" data-close="editOverlay">×</button></h2>
+    <form id="editForm">
+      <div class="row2">
+        <div class="field"><label>日期 *</label><input type="date" id="fDate" required></div>
+        <div class="field"><label>天气</label>
+          <select id="fWeather">
+            <option value="">未填</option><option>☀️ 晴</option><option>⛅ 多云</option>
+            <option>☁️ 阴</option><option>🌧️ 雨</option><option>❄️ 雪</option><option>🌬️ 风</option>
+          </select>
+        </div>
+      </div>
+      <div class="field"><label>这条路线叫什么？（如：东四十条 → 南锣鼓巷 → 鼓楼）</label>
+        <input type="text" id="fRoute" maxlength="60" placeholder="起终点 / 路线名"></div>
+      <div class="row2">
+        <div class="field"><label>距离（km）</label><input type="number" id="fDistance" min="0" step="0.1" placeholder="如 6.5" inputmode="decimal"></div>
+        <div class="field"><label>用时（小时）</label><input type="number" id="fDuration" min="0" step="0.5" placeholder="如 2.5" inputmode="decimal"></div>
+      </div>
+      <div class="field"><label>今天走了什么主题（可多选）</label>
+        <div class="tag-edit" id="tagEdit"></div>
+        <div class="custom-tag-row">
+          <input type="text" id="fNewTag" maxlength="8" placeholder="自定义标签，如：什刹海">
+          <button type="button" id="btnAddTag">添加</button>
+        </div>
+      </div>
+      <div class="field"><label>今天开心吗</label>
+        <div class="stars-input" id="fStars"></div>
+      </div>
+      <div class="field"><label>看到了什么、吃了什么、想了什么</label>
+        <textarea id="fNotes" maxlength="4000" placeholder="自由记录，支持换行…"></textarea></div>
+      <div class="field"><label>照片（自动压缩保存，最多 9 张）</label>
+        <div class="photo-grid" id="photoGrid"></div>
+        <input type="file" id="fPhotos" accept="image/*" multiple hidden>
+      </div>
+      <div class="submit-row">
+        <button type="button" class="btn" data-close="editOverlay">取消</button>
+        <button type="submit" class="btn primary" style="margin-bottom:0">保存 ✔</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 详情弹窗 -->
+<div class="overlay" id="detailOverlay">
+  <div class="sheet" id="detailSheet"></div>
+</div>
+
+<div id="lightbox"><img id="lightboxImg" alt=""></div>
+<div id="toast"></div>
+
+<script>
+(function(){
+  'use strict';
+  var LS_KEY='bj_citywalk_records_v1', LS_TAGS='bj_citywalk_tags_v1';
+  var PRESET_TAGS=['胡同','城墙遗址','公园','滨河','商圈','寺庙宫观','大学','艺术区','菜市场','夜走','登高','名人故居','铁路工业','美食'];
+
+  /* ---------- 存储 ---------- */
+  function load(key,fallback){
+    try{ var raw=localStorage.getItem(key); return raw?JSON.parse(raw):fallback; }
+    catch(e){ return fallback; }
+  }
+  function saveAll(){
+    try{ localStorage.setItem(LS_KEY,JSON.stringify(data)); }
+    catch(e){ toast('⚠️ 存储空间不足，请删除部分照片或导出备份后清理'); }
+  }
+  function saveTags(){
+    try{ localStorage.setItem(LS_TAGS,JSON.stringify(customTags)); }catch(e){}
+  }
+
+  var data=load(LS_KEY,[]);
+  var customTags=load(LS_TAGS,[]);
+  function allTags(){
+    var set=PRESET_TAGS.concat(customTags);
+    data.forEach(function(r){ (r.tags||[]).forEach(function(t){ if(set.indexOf(t)<0) set.push(t); }); });
+    return set;
+  }
+
+  /* ---------- 小工具 ---------- */
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function todayStr(){
+    var d=new Date(); return ymd(d);
+  }
+  function ymd(d){
+    return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+  }
+  function parseYmd(s){ var p=s.split('-'); return new Date(+p[0],+p[1]-1,+p[2]); }
+  var WEEK_CN=['日','一','二','三','四','五','六'];
+  function dateLabel(s){
+    var d=parseYmd(s);
+    return s.slice(5).replace('-','/')+' 周'+WEEK_CN[d.getDay()];
+  }
+  function mondayOf(d){
+    var x=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+    var wd=(x.getDay()+6)%7;
+    x.setDate(x.getDate()-wd);
+    return x;
+  }
+  function weekKey(d){
+    var m=mondayOf(d);
+    return m.getFullYear()+'-'+(m.getMonth()+1)+'-'+m.getDate();
+  }
+  function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+  var toastTimer=null;
+  function toast(msg){
+    var t=$('toast'); t.textContent=msg; t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer=setTimeout(function(){t.classList.remove('show');},2600);
+  }
+  function starStr(n){ n=+n||0; return '★'.repeat(n)+'☆'.repeat(Math.max(0,5-n)); }
+  function fmtNum(v){ if(v===''||v==null||isNaN(v)) return null; return (Math.round(v*10)/10).toString(); }
+
+  /* ---------- 周状态横幅 ---------- */
+  function renderWeekBanner(){
+    var now=new Date(), thisMon=mondayOf(now);
+    var thisStart=ymd(thisMon), thisEnd=ymd(new Date(thisMon.getFullYear(),thisMon.getMonth(),thisMon.getDate()+6));
+    var thisWeek=data.filter(function(r){return r.date>=thisStart&&r.date<=thisEnd;});
+    var lastMon=new Date(thisMon); lastMon.setDate(lastMon.getDate()-7);
+    var lastStart=ymd(lastMon), lastEnd=ymd(new Date(lastMon.getFullYear(),lastMon.getMonth(),lastMon.getDate()+6));
+    var lastWeek=data.filter(function(r){return r.date>=lastStart&&r.date<=lastEnd;});
+    var el=$('weekBanner'), html='';
+    if(thisWeek.length){
+      html='<span>✅ 本周已打卡 <b>'+thisWeek.length+'</b> 次</span><span style="opacity:.8">'+esc(thisWeek[0].route||thisWeek[0].date)+'</span>';
+    }else if(lastWeek.length){
+      html='<span>本周还没出门～ 上周走过 <b>'+lastWeek.length+'</b> 次，继续加油 🌿</span>';
+    }else{
+      html='<span>本周还没记录，挑条胡同走走吧 🍂</span>';
+    }
+    el.innerHTML=html;
+  }
+
+  /* ---------- Tab 切换 ---------- */
+  var tabBtns=document.querySelectorAll('nav button');
+  tabBtns.forEach(function(b){
+    b.addEventListener('click',function(){
+      tabBtns.forEach(function(x){x.classList.remove('active');});
+      b.classList.add('active');
+      document.querySelectorAll('section').forEach(function(s){s.classList.remove('active');});
+      $('tab-'+b.dataset.tab).classList.add('active');
+      if(b.dataset.tab==='timeline') renderList();
+      if(b.dataset.tab==='calendar') renderCalendar();
+      if(b.dataset.tab==='stats') renderStats();
+      if(b.dataset.tab==='data') renderStoreInfo();
+    });
+  });
+
+  /* ---------- 时间线 ---------- */
+  var currentTagFilter=null;
+  function renderTagFilter(){
+    var bar=$('tagFilter');
+    var tags=allTags();
+    bar.innerHTML='<span class="t'+(currentTagFilter===null?' on':'')+'" data-tag="">全部</span>'+
+      tags.map(function(t){
+        return '<span class="t'+(currentTagFilter===t?' on':'')+'" data-tag="'+esc(t)+'">'+esc(t)+'</span>';
+      }).join('');
+    bar.querySelectorAll('.t').forEach(function(el){
+      el.addEventListener('click',function(){
+        var t=el.dataset.tag;
+        currentTagFilter=t||null;
+        renderTagFilter(); renderList();
+      });
+    });
+  }
+  function filteredSorted(){
+    var q=($('searchBox').value||'').trim().toLowerCase();
+    return data.slice().sort(function(a,b){
+      if(a.date!==b.date) return a.date<b.date?1:-1;
+      return (b.createdAt||0)-(a.createdAt||0);
+    }).filter(function(r){
+      if(currentTagFilter && (r.tags||[]).indexOf(currentTagFilter)<0) return false;
+      if(!q) return true;
+      var hay=(r.route+' '+(r.tags||[]).join(' ')+' '+r.notes+' '+r.date+' '+(r.weather||'')).toLowerCase();
+      return hay.indexOf(q)>=0;
+    });
+  }
+  function cardHtml(r){
+    var meta=[];
+    var km=fmtNum(r.distance); if(km) meta.push('📏 '+km+' km');
+    var hr=fmtNum(r.duration); if(hr) meta.push('⏱ '+hr+' h');
+    if(r.weather) meta.push(esc(r.weather));
+    if(r.mood) meta.push('<span class="stars">'+starStr(r.mood)+'</span>');
+    var chips=(r.tags||[]).map(function(t){return '<span class="chip">'+esc(t)+'</span>';}).join('');
+    var thumbs='';
+    if(r.photos&&r.photos.length){
+      thumbs='<div class="thumbs">'+r.photos.slice(0,6).map(function(p,i){
+        return '<img src="'+p+'" alt="" data-ph="'+r.id+'-'+i+'">';}).join('')+
+        (r.photos.length>6?'<span style="align-self:center;font-size:12px;color:var(--muted)">+'+(r.photos.length-6)+'</span>':'')+'</div>';
+    }
+    return '<div class="card" data-id="'+r.id+'">'+
+      '<div class="top"><div class="title">'+esc(r.route||'未命名的一走')+'</div><div class="date">'+dateLabel(r.date)+'</div></div>'+
+      (chips?'<div class="chips">'+chips+'</div>':'')+thumbs+
+      (r.notes?'<div class="notes">'+esc(r.notes)+'</div>':'')+
+      (meta.length?'<div class="meta">'+meta.join('')+'</div>':'')+
+      '</div>';
+  }
+  function renderList(){
+    var list=filteredSorted();
+    var el=$('list');
+    if(!list.length){
+      el.innerHTML=data.length?
+        '<div class="empty"><div class="big">🔍</div>没有符合条件的记录</div>':
+        '<div class="empty"><div class="big">🌿</div>还没有记录<br>点右下角 ＋ 记下第一次走路吧<br><span style="font-size:12px">推荐首走：东交民巷 → 前门东大街 → 明城墙遗址</span></div>';
+      return;
+    }
+    // 按月份分组
+    var html='', lastMonth='';
+    list.forEach(function(r){
+      var m=r.date.slice(0,7);
+      if(m!==lastMonth){
+        lastMonth=m;
+        html+='<div style="font-size:12.5px;color:var(--muted);margin:14px 2px 8px;font-weight:600">'+m.replace('-','年')+'月</div>';
+      }
+      html+=cardHtml(r);
+    });
+    el.innerHTML=html;
+    el.querySelectorAll('.card').forEach(function(c){
+      c.addEventListener('click',function(e){
+        if(e.target.tagName==='IMG'){ openPhoto(c.dataset.id,+e.target.dataset.ph.split('-')[1]||0); return; }
+        openDetail(c.dataset.id);
+      });
+    });
+  }
+  $('searchBox').addEventListener('input',renderList);
+
+  /* ---------- 日历 ---------- */
+  var calCursor=new Date(); calCursor.setDate(1);
+  var selectedDay=null;
+  function renderCalendar(){
+    var y=calCursor.getFullYear(), m=calCursor.getMonth();
+    $('calTitle').textContent=y+'年'+(m+1)+'月';
+    var first=new Date(y,m,1);
+    var offset=(first.getDay()+6)%7; // 周一为第一列
+    var daysInMonth=new Date(y,m+1,0).getDate();
+    var byDate={};
+    data.forEach(function(r){ (byDate[r.date]=byDate[r.date]||[]).push(r); });
+    var html=['一','二','三','四','五','六','日'].map(function(w){return '<div class="wd">'+w+'</div>';}).join('');
+    var prevMonthDays=new Date(y,m,0).getDate();
+    for(var i=0;i<offset;i++){
+      html+='<div class="cal-cell dim"><span>'+(prevMonthDays-offset+1+i)+'</span></div>';
+    }
+    var todayS=todayStr();
+    for(var d=1;d<=daysInMonth;d++){
+      var ds=y+'-'+('0'+(m+1)).slice(-2)+'-'+('0'+d).slice(-2);
+      var recs=byDate[ds]||[];
+      var kmSum=recs.reduce(function(s,r){return s+(+r.distance||0);},0);
+      var dots=recs.slice(0,3).map(function(){return '<span class="dot"></span>';}).join('');
+      html+='<div class="cal-cell'+(ds===todayS?' today':'')+'" data-d="'+ds+'">'+
+        '<span>'+d+'</span><div class="dots">'+(dots||'')+'</div>'+
+        '<span class="km">'+(kmSum?fmtNum(kmSum)+'k':'')+'</span></div>';
+    }
+    var total=offset+daysInMonth, tail=(7-total%7)%7;
+    for(var t=0;t<tail;t++) html+='<div class="cal-cell dim"><span>'+(t+1)+'</span></div>';
+    $('calGrid').innerHTML=html;
+    $('calGrid').querySelectorAll('.cal-cell[data-d]').forEach(function(c){
+      c.addEventListener('click',function(){
+        selectedDay=c.dataset.d; renderDayPanel(byDate[selectedDay]||[]);
+      });
+    });
+    renderDayPanel(selectedDay&&byDate[selectedDay]?byDate[selectedDay]:[]);
+  }
+  function renderDayPanel(recs){
+    var el=$('dayPanel');
+    if(!selectedDay){ el.innerHTML=''; return; }
+    var html='<h3>'+dateLabel(selectedDay)+(recs.length?'':' · 这天没有记录')+'</h3>';
+    if(!recs.length){
+      html+='<button class="btn primary" data-addday="'+selectedDay+'">＋ 记这一天</button>';
+    }else{
+      html+=recs.map(cardHtml).join('');
+    }
+    el.innerHTML=html;
+    el.querySelectorAll('.card').forEach(function(c){
+      c.addEventListener('click',function(e){
+        if(e.target.tagName==='IMG'){ openPhoto(c.dataset.id,+e.target.dataset.ph.split('-')[1]||0); return; }
+        openDetail(c.dataset.id);
+      });
+    });
+    var ad=el.querySelector('[data-addday]');
+    if(ad) ad.addEventListener('click',function(){ openEditor(null,ad.dataset.addday); });
+  }
+  $('calPrev').addEventListener('click',function(){ calCursor.setMonth(calCursor.getMonth()-1); selectedDay=null; renderCalendar(); });
+  $('calNext').addEventListener('click',function(){ calCursor.setMonth(calCursor.getMonth()+1); selectedDay=null; renderCalendar(); });
+
+  /* ---------- 统计 ---------- */
+  function renderStats(){
+    var totalKm=data.reduce(function(s,r){return s+(+r.distance||0);},0);
+    var totalHr=data.reduce(function(s,r){return s+(+r.duration||0);},0);
+    // 连续周
+    var wkSet={};
+    data.forEach(function(r){ wkSet[weekKey(parseYmd(r.date))]=1; });
+    var streak=0, cur=mondayOf(new Date());
+    var ck=weekKey(cur);
+    if(!wkSet[ck]){ cur.setDate(cur.getDate()-7); } // 本周没走则从上周算起
+    while(wkSet[weekKey(cur)]){ streak++; cur.setDate(cur.getDate()-7); }
+    // 平均
+    var avgKm=0;
+    if(data.length){
+      var ds=data.map(function(r){return parseYmd(r.date).getTime();});
+      var span=(Math.max.apply(null,ds)-Math.min.apply(null,ds))/(7*864e5)+1/7;
+      avgKm=span>0?totalKm/span:totalKm;
+    }
+    $('statCards').innerHTML=
+      statBox(data.length,'次记录')+statBox(fmtNum(totalKm)||'0','总公里')+
+      statBox(streak,'连续周数')+statBox(fmtNum(avgKm)||'0','周均公里');
+    // 标签分布
+    var tc={};
+    data.forEach(function(r){(r.tags||[]).forEach(function(t){tc[t]=(tc[t]||0)+1;});});
+    var arr=Object.keys(tc).map(function(k){return [k,tc[k]];}).sort(function(a,b){return b[1]-a[1];}).slice(0,8);
+    $('tagStats').innerHTML=arr.length?arr.map(function(p){
+      var w=Math.max(6,p[1]/arr[0][1]*160);
+      return '<div class="bar-row"><span class="name">'+esc(p[0])+'</span><div class="bar" style="width:'+w+'px"></div><span class="num">'+p[1]+'</span></div>';
+    }).join(''):'<div style="font-size:13px;color:var(--muted)">暂无标签数据</div>';
+    // 近6个月里程趋势
+    var months=[];
+    for(var i=5;i>=0;i--){
+      var d=new Date(); d.setDate(1); d.setMonth(d.getMonth()-i);
+      months.push(d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2));
+    }
+    var mKm=months.map(function(m){
+      return data.filter(function(r){return r.date.slice(0,7)===m;}).reduce(function(s,r){return s+(+r.distance||0);},0);
+    });
+    var maxKm=Math.max.apply(null,mKm.concat([1]));
+    $('trendChart').innerHTML=months.map(function(m,i){
+      var h=Math.round(mKm[i]/maxKm*82)+3;
+      return '<div class="col"><span class="vv">'+(mKm[i]?fmtNum(mKm[i]):'')+'</span>'+
+        '<div class="b" style="height:'+h+'px'+(mKm[i]?'':'；opacity:.15')+'"></div>'+
+        '<span class="t">'+m.slice(5)+'月</span></div>';
+    }).join('');
+    // 年度
+    var year=new Date().getFullYear();
+    var yearRecs=data.filter(function(r){return r.date.slice(0,4)==String(year);});
+    var wks={}; yearRecs.forEach(function(r){wks[weekKey(parseYmd(r.date))]=1;});
+    var weekNo=Math.ceil((new Date(year,11,31)-new Date(year,0,1)+864e5*3)/7/864e5);
+    var monthWk=Math.ceil((Date.now()-new Date(year,0,1))/7/864e5);
+    $('yearStats').innerHTML=year+' 年共打卡 <b style="color:var(--primary)">'+Object.keys(wks).length+'</b> 个周（全年 '+weekNo+' 周 / 已过约 '+monthWk+' 周），'+
+      '累计 <b style="color:var(--primary)">'+fmtNum(yearRecs.reduce(function(s,r){return s+(+r.distance||0);},0))+'</b> km';
+  }
+  function statBox(v,l){ return '<div class="stat"><div class="v">'+esc(v)+'</div><div class="l">'+l+'</div></div>'; }
+
+  /* ---------- 编辑器 ---------- */
+  var editingId=null, editTags=[], editPhotos=[], editMood=0;
+  function openEditor(rec,presetDate){
+    editingId=rec?rec.id:null;
+    $('editTitle').textContent=rec?'编辑记录':'记下这次走路';
+    $('fDate').value=rec?rec.date:(presetDate||todayStr());
+    $('fWeather').value=rec?(rec.weather||''):'';
+    $('fRoute').value=rec?(rec.route||''):'';
+    $('fDistance').value=rec&&rec.distance!=null?rec.distance:'';
+    $('fDuration').value=rec&&rec.duration!=null?rec.duration:'';
+    $('fNotes').value=rec?(rec.notes||''):'';
+    editTags=rec?(rec.tags||[]).slice():[];
+    editPhotos=rec?(rec.photos||[]).slice():[];
+    editMood=rec?(+rec.mood||0):0;
+    renderTagEdit(); renderStars(); renderPhotoGrid();
+    $('editOverlay').classList.add('open');
+    document.body.style.overflow='hidden';
+    if(!rec) setTimeout(function(){$('fRoute').focus();},250);
+  }
+  function closeEditor(){ $('editOverlay').classList.remove('open'); document.body.style.overflow=''; }
+  function renderTagEdit(){
+    $('tagEdit').innerHTML=allTags().map(function(t){
+      var on=editTags.indexOf(t)>=0;
+      return '<span class="t'+(on?' on':'')+'" data-t="'+esc(t)+'">'+esc(t)+'</span>';
+    }).join('');
+    $('tagEdit').querySelectorAll('.t').forEach(function(el){
+      el.addEventListener('click',function(){
+        var t=el.dataset.t, i=editTags.indexOf(t);
+        if(i>=0) editTags.splice(i,1); else if(editTags.length<6) editTags.push(t);
+        else toast('最多选 6 个标签');
+        renderTagEdit();
+      });
+    });
+  }
+  $('btnAddTag').addEventListener('click',function(){
+    var v=$('fNewTag').value.trim();
+    if(!v) return;
+    if(allTags().indexOf(v)<0){ customTags.push(v); saveTags(); }
+    if(editTags.indexOf(v)<0&&editTags.length<6) editTags.push(v);
+    $('fNewTag').value='';
+    renderTagEdit();
+  });
+  function renderStars(){
+    $('fStars').innerHTML=[1,2,3,4,5].map(function(i){
+      return '<span class="s'+(i<=editMood?' on':'')+'" data-v="'+i+'">★</span>';
+    }).join('')+'<span style="font-size:13px;color:var(--muted);align-self:center;margin-left:6px">'+
+      (['','有点累','还行','挺开心','很喜欢','今日最佳'][editMood]||'点星星打分')+'</span>';
+    $('fStars').querySelectorAll('.s').forEach(function(el){
+      el.addEventListener('click',function(){ editMood=+el.dataset.v; renderStars(); });
+    });
+  }
+  function renderPhotoGrid(){
+    var g=$('photoGrid');
+    g.innerHTML=editPhotos.map(function(p,i){
+      return '<div class="ph"><img src="'+p+'" alt=""><button type="button" class="x" data-i="'+i+'">×</button></div>';
+    }).join('')+
+    (editPhotos.length<9?'<button type="button" class="photo-add" id="phAdd">＋</button>':'');
+    var add=$('phAdd');
+    if(add) add.addEventListener('click',function(){ $('fPhotos').click(); });
+    g.querySelectorAll('.x').forEach(function(b){
+      b.addEventListener('click',function(){ editPhotos.splice(+b.dataset.i,1); renderPhotoGrid(); });
+    });
+  }
+  $('fPhotos').addEventListener('change',function(){
+    var files=Array.prototype.slice.call(this.files||[]);
+    this.value='';
+    var room=9-editPhotos.length;
+    files.slice(0,room).forEach(function(f){ compressPhoto(f); });
+  });
+  function compressPhoto(file){
+    var img=new Image(), url=URL.createObjectURL(file);
+    img.onload=function(){
+      URL.revokeObjectURL(url);
+      var max=1000, w=img.width, h=img.height;
+      if(Math.max(w,h)>max){ var s=max/Math.max(w,h); w=Math.round(w*s); h=Math.round(h*s); }
+      var c=document.createElement('canvas'); c.width=w; c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      editPhotos.push(c.toDataURL('image/jpeg',0.72));
+      renderPhotoGrid();
+    };
+    img.onerror=function(){ toast('图片读取失败'); URL.revokeObjectURL(url); };
+    img.src=url;
+  }
+  $('editForm').addEventListener('submit',function(e){
+    e.preventDefault();
+    var rec={
+      id:editingId||uid(),
+      date:$('fDate').value,
+      route:$('fRoute').value.trim(),
+      weather:$('fWeather').value,
+      distance:$('fDistance').value===''?null:+$('fDistance').value,
+      duration:$('fDuration').value===''?null:+$('fDuration').value,
+      tags:editTags.slice(),
+      mood:editMood,
+      notes:$('fNotes').value.trim(),
+      photos:editPhotos.slice(),
+      updatedAt:Date.now()
+    };
+    if(!rec.date){ toast('请选择日期'); return; }
+    if(!rec.route&&!rec.notes&&!rec.tags.length&&!rec.photos.length){ toast('至少写点内容吧～'); return; }
+    var idx=data.findIndex(function(r){return r.id===rec.id;});
+    if(idx>=0){ rec.createdAt=data[idx].createdAt; data[idx]=rec; }
+    else{ rec.createdAt=Date.now(); data.push(rec); }
+    saveAll(); closeEditor(); refreshAll();
+    toast(idx>=0?'已更新 ✔':'已记录，下周继续 🚶');
+  });
+  $('fabAdd').addEventListener('click',function(){ openEditor(null); });
+
+  /* ---------- 详情 ---------- */
+  function openDetail(id){
+    var r=data.find(function(x){return x.id===id;}); if(!r) return;
+    var meta=[];
+    var km=fmtNum(r.distance); if(km) meta.push('📏 '+km+' km');
+    var hr=fmtNum(r.duration); if(hr) meta.push('⏱ '+hr+' 小时');
+    if(r.weather) meta.push(esc(r.weather));
+    var chips=(r.tags||[]).map(function(t){return '<span class="chip">'+esc(t)+'</span>';}).join('');
+    $('detailSheet').innerHTML=
+      '<h2><span>'+esc(r.route||'未命名的一走')+'</span><button class="close" data-close="detailOverlay">×</button></h2>'+
+      '<div style="font-size:13px;color:var(--muted)">'+dateLabel(r.date)+(r.mood?' · <span class="stars">'+starStr(r.mood)+'</span>':'')+'</div>'+
+      (chips?'<div class="chips">'+chips+'</div>':'')+
+      (meta.length?'<div class="meta" style="margin-top:10px">'+meta.join('')+'</div>':'')+
+      (r.notes?'<div class="detail-notes">'+esc(r.notes)+'</div>':'')+
+      (r.photos&&r.photos.length?'<div class="detail-imgs">'+r.photos.map(function(p,i){
+        return '<img src="'+p+'" data-ph="'+i+'" alt="">';}).join('')+'</div>':'')+
+      '<div class="detail-actions"><button class="btn" id="dEdit">✏️ 编辑</button>'+
+      '<button class="btn danger" id="dDel" style="margin-bottom:0">🗑 删除</button></div>';
+    $('detailOverlay').classList.add('open');
+    document.body.style.overflow='hidden';
+    $('detailSheet').querySelectorAll('[data-close]').forEach(function(b){
+      b.addEventListener('click',closeDetail);
+    });
+    $('detailSheet').querySelectorAll('.detail-imgs img').forEach(function(im){
+      im.addEventListener('click',function(){ openPhoto(id,+im.dataset.ph); });
+    });
+    $('dEdit').addEventListener('click',function(){ closeDetail(); openEditor(r); });
+    $('dDel').addEventListener('click',function(){
+      if(!confirm('删除这条记录？（不可恢复）')) return;
+      data=data.filter(function(x){return x.id!==id;});
+      saveAll(); closeDetail(); refreshAll(); toast('已删除');
+    });
+  }
+  function closeDetail(){ $('detailOverlay').classList.remove('open'); document.body.style.overflow=''; }
+
+  function openPhoto(id,i){
+    var r=data.find(function(x){return x.id===id;}); if(!r||!r.photos[i]) return;
+    $('lightboxImg').src=r.photos[i];
+    $('lightbox').classList.add('open');
+  }
+  $('lightbox').addEventListener('click',function(){ this.classList.remove('open'); });
+
+  document.querySelectorAll('[data-close="editOverlay"]').forEach(function(b){
+    b.addEventListener('click',closeEditor);
+  });
+  $('editOverlay').addEventListener('click',function(e){ if(e.target===this) closeEditor(); });
+  $('detailOverlay').addEventListener('click',function(e){ if(e.target===this) closeDetail(); });
+
+  /* ---------- 导入导出 ---------- */
+  function download(filename,text,mime){
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([text],{type:mime||'application/json'}));
+    a.download=filename; document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },800);
+  }
+  $('btnExport').addEventListener('click',function(){
+    if(!data.length){ toast('还没有记录'); return; }
+    download('北京CityWalk备份-'+todayStr().replace(/-/g,'')+'.json',
+      JSON.stringify({app:'bj-citywalk',version:1,exportedAt:Date.now(),records:data},null,1));
+    toast('备份已导出');
+  });
+  $('btnExportCsv').addEventListener('click',function(){
+    if(!data.length){ toast('还没有记录'); return; }
+    var rows=[['日期','星期','路线','标签','距离km','用时h','天气','评分','笔记']];
+    data.slice().sort(function(a,b){return a.date<b.date?-1:1;}).forEach(function(r){
+      rows.push([r.date,'周'+WEEK_CN[parseYmd(r.date).getDay()],r.route||'',
+        (r.tags||[]).join('/'),r.distance==null?'':r.distance,r.duration==null?'':r.duration,
+        (r.weather||'').replace(/^\S+\s/,''),r.mood||'',(r.notes||'').replace(/\n/g,' ')]);
+    });
+    var csv='\ufeff'+rows.map(function(row){
+      return row.map(function(c){ return '"'+String(c).replace(/"/g,'""')+'"'; }).join(',');
+    }).join('\r\n');
+    download('北京CityWalk记录-'+todayStr().replace(/-/g,'')+'.csv',csv,'text/csv;charset=utf-8');
+    toast('CSV 已导出');
+  });
+  $('btnImport').addEventListener('click',function(){ $('importFile').click(); });
+  $('importFile').addEventListener('change',function(){
+    var f=this.files[0]; this.value='';
+    if(!f) return;
+    var reader=new FileReader();
+    reader.onload=function(){
+      try{
+        var obj=JSON.parse(reader.result);
+        var recs=Array.isArray(obj)?obj:obj.records;
+        if(!Array.isArray(recs)) throw 0;
+        var added=0,updated=0;
+        recs.forEach(function(r){
+          if(!r||!r.date) return;
+          var idx=data.findIndex(function(x){return x.id===r.id;});
+          if(idx<0){ data.push(r); added++; }
+          else if((r.updatedAt||0)>(data[idx].updatedAt||0)){ data[idx]=r; updated++; }
+        });
+        saveAll(); refreshAll();
+        toast('导入完成：新增 '+added+' 条，更新 '+updated+' 条');
+      }catch(e){ toast('文件格式不对，请选择本应用导出的 JSON'); }
+    };
+    reader.readAsText(f);
+  });
+  $('btnClear').addEventListener('click',function(){
+    if(!data.length){ toast('本来就是空的'); return; }
+    if(!confirm('确定删除全部 '+data.length+' 条记录吗？建议先导出备份！')) return;
+    if(!confirm('再确认一次：真的要清空？')) return;
+    data=[]; saveAll(); refreshAll(); toast('已清空');
+  });
+  function renderStoreInfo(){
+    var bytes=0; try{ bytes=(localStorage.getItem(LS_KEY)||'').length*2; }catch(e){}
+    var kb=bytes>1048576?(bytes/1048576).toFixed(1)+' MB':(bytes/1024).toFixed(0)+' KB';
+    $('storeInfo').textContent='当前 '+data.length+' 条记录，约占用存储 '+kb+'（浏览器本地配额一般 5MB 左右，照片多时请及时备份）';
+  }
+
+  /* ---------- 全局刷新 ---------- */
+  function refreshAll(){
+    renderWeekBanner(); renderTagFilter(); renderList();
+    if($('tab-calendar').classList.contains('active')) renderCalendar();
+    if($('tab-stats').classList.contains('active')) renderStats();
+    if($('tab-data').classList.contains('active')) renderStoreInfo();
+  }
+  refreshAll();
+})();
+</script>
+</body>
+</html>
